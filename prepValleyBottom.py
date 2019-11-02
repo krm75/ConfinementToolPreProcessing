@@ -9,3 +9,6 @@ Kim Myers
 krm75@duke.edu
 """
 
+# extract GEOMORPHONS raster by HUC boundary mask
+
+# convert clipped GEOMORPHONS raster to polygon
