@@ -106,6 +106,28 @@ bufferInput = selectOutput
 bufferOutput = "..\data\\NHDPlus_{}_channelMargins.shp".format(HUC)
 arcpy.Buffer_analysis(bufferInput, bufferOutput, 'Buff_dist','','','ALL')
 
+# match stream margin spatial reference with geomorphons
+outCS = arcpy.SpatialReference(102719)
+SMprojectOutput = "{}".format(bufferOutput[:-4]) + "_StatePlane.shp"
 
 
+# extract GEOMORPHONS raster by HUC boundary mask
+# match HUC8 boundary spatial reference with geomorphons
+HBprojectOutput = "WBDHU8_StatePlane.shp"
+
+arcpy.Project_management(HUCboundary, HBprojectOutput, outCS)
+
+outExtractByMask = ExtractByMask("Geomorphons_of_NC_30ft.tif", HUCboundary)
+outExtractByMask.save("Geomorphons_{}_StatePlane.tif".format(HUC))
+
+# filter GEOMORPHONS to valley bottom
+# filter types 6, 7, 8, 9, 10
+geomorph = "Geomorphons_{}_StatePlane.tif".format(HUC)
+outSetNull = SetNull(geomorph, 1, "Value < 6")
+outSetNull.save("Geomorphons_{}_ValleyBottom.tif".format(HUC))
+valley = "Geomorphons_{}_ValleyBottom.tif".format(HUC)
+
+'UNABLE TO CREATE MULTIPART POLYGONS BECAUSE ONLY 4 ARGUMENTS ALLOWED'
+# convert clipped GEOMORPHONS raster to polygon
+arcpy.RasterToPolygon_conversion(valley, "Geomorphons_{}_ValleyBottom_polygon.shp".format(HUC),'NO_SIMPLIFY','VALUE','MULTIPLE_OUTER_PART')
 
