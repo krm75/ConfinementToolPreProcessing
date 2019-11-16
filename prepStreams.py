@@ -9,10 +9,12 @@ Kim Myers
 krm75@duke.edu
 """
 
-# filter NHD Plus streams
+# clip HUC4 NHD Plus streams to HUC8 NHD streams
 
-# segment stream networks 
+# filter NHD Plus streams
 
 # buffer polylines, with distance weighted by drainage area, to create channel margins
 
 # buffer channel margins to account for digitization error (based on DEM resolution)
+
+# segment stream networks 

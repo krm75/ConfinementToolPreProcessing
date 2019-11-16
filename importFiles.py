@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-IMPORT FILES FROM USGS
-
 Confinement Pre-processing Code
 AdvGIS Final Project, Fall 2019
 
 Kim Myers
 krm75@duke.edu
 """
+
+
 # import modules
 import os
 import arcpy
@@ -15,6 +15,7 @@ import shutil
 import urllib
 import zipfile #https://pymotw.com/2/zipfile/
 #import geopandas as gpd #http://geopandas.org/io.html
+arcpy.overwriteoutput = True
 
 ##### import NHD Plus (HUC4) and NHD (HUC8) GDBs for NC HUC of choice from USGS 
 
@@ -64,7 +65,47 @@ for file in arcpy.ListFiles("NHD*.zip"):
     ##geoFile, headers = urllib.request.urlretrieve('http://python.org/')
 ##else: print('You will need to download a valley bottom layer.')
 
+'CAN USE LAYER IN HUC4 GDB'
+# define HUC8 boundary as NHD WBD layer
+HUCboundary = 'NHD_H_03030002_HU8_GDB.gdb\\WBDHU8'
+plusFlow = 'NHDPLUS_H_{}_HU4_GDB.gdb'.format(HUC[:-4]) + "\\" + "NHDFlowline"
+clipOutput = "NHDPlus_{}_Flowline".format(HUC)
+# clip NHD Plus line to HUC8 boundary
+arcpy.Clip_analysis(plusFlow, HUCboundary, clipOutput)
 
-# define HUC8 boundary as NHDPlusCatchment layer
-boundaryPath = desiredPath[:-26] + "\\" + huc8File[:-4] + ".gdb"
-HUCboundary = boundaryPath + "\\" + "WBDHU8.shp"
+# filter NHD Plus streams (FCODE 460 = StreamRivers), add option for stream orders
+orderLimit = input("What is the lowest stream order you want to include?: ")
+#orderLimit = GetParameterAsText(0)
+orderLimit = int(orderLimit)
+
+'HALP NOT OVERWRITING OUTPUT CORRECTLY'
+#selectInput = "..\data" + "\\" + clipOutput + ".shp"
+plusGDB = 'NHDPLUS_H_{}_HU4_GDB.gdb'.format(HUC[:-4])
+vaaTable = "..\data" + "\\" + plusGDB + "\\" + "NHDPlusFlowlineVAA"
+#arcpy.JoinField_management(selectInput, 'ReachCode', vaaTable, 'ReachCode', ['StreamOrde','TotDASqKm'])
+
+if orderLimit == 1:  
+    selectOutput = "NHDPlus_{}_Streams.shp".format(HUC)
+    whereClause = '"FType" = 460 OR "FType" = 558'
+    arcpy.Select_analysis(selectInput, selectOutput, whereClause)
+else: 
+    selectOutput = "NHDPlus_{}_Streams_{}Order.shp".format(HUC, orderLimit)
+    whereClause = '("FType" = 460 OR "FType" = 558) AND "StreamOrde" >= {}'.format(orderLimit)
+    arcpy.Select_analysis(selectInput, selectOutput, whereClause)
+    
+# buffer polylines, with distance weighted by drainage area, to create channel margins
+# buffer channel margins to account for digitization error (based on DEM resolution)
+### 60 in field calculationg expression account for digitzation error
+
+'ASK DANICA AND JULIE BEST EQUATION TO CONVERT DRAINAGE AREA TO STREAM WIDTH'
+arcpy.AddField_management(selectOutput, 'Buff_dist', 'DOUBLE')
+calcBuffer = '((6.04*(!TotDASqKm!*0.621371)**0.441))*0.3048+13.716' #calculate channel width in meters
+arcpy.CalculateField_management(selectOutput, 'Buff_dist', calcBuffer)
+
+bufferInput = selectOutput
+bufferOutput = "..\data\\NHDPlus_{}_channelMargins.shp".format(HUC)
+arcpy.Buffer_analysis(bufferInput, bufferOutput, 'Buff_dist','','','ALL')
+
+
+
+
