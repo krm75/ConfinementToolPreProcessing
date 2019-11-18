@@ -65,7 +65,7 @@ for file in arcpy.ListFiles("NHD*.zip"):
     ##geoFile, headers = urllib.request.urlretrieve('http://python.org/')
 ##else: print('You will need to download a valley bottom layer.')
 
-'CAN USE LAYER IN HUC4 GDB'
+#'CAN USE LAYER IN HUC4 GDB'
 # define HUC8 boundary as NHD WBD layer
 HUCboundary = 'NHD_H_03030002_HU8_GDB.gdb\\WBDHU8'
 plusFlow = 'NHDPLUS_H_{}_HU4_GDB.gdb'.format(HUC[:-4]) + "\\" + "NHDFlowline"
@@ -78,10 +78,10 @@ orderLimit = input("What is the lowest stream order you want to include?: ")
 #orderLimit = GetParameterAsText(0)
 orderLimit = int(orderLimit)
 
-'HALP NOT OVERWRITING OUTPUT CORRECTLY'
+#'HALP NOT OVERWRITING OUTPUT CORRECTLY'
 #selectInput = "..\data" + "\\" + clipOutput + ".shp"
 plusGDB = 'NHDPLUS_H_{}_HU4_GDB.gdb'.format(HUC[:-4])
-vaaTable = "..\data" + "\\" + plusGDB + "\\" + "NHDPlusFlowlineVAA"
+vaaTable = plusGDB + "\\" + "NHDPlusFlowlineVAA"
 #arcpy.JoinField_management(selectInput, 'ReachCode', vaaTable, 'ReachCode', ['StreamOrde','TotDASqKm'])
 
 if orderLimit == 1:  
@@ -97,13 +97,13 @@ else:
 # buffer channel margins to account for digitization error (based on DEM resolution)
 ### 60 in field calculationg expression account for digitzation error
 
-'ASK DANICA AND JULIE BEST EQUATION TO CONVERT DRAINAGE AREA TO STREAM WIDTH'
+
 arcpy.AddField_management(selectOutput, 'Buff_dist', 'DOUBLE')
 calcBuffer = '((6.04*(!TotDASqKm!*0.621371)**0.441))*0.3048+13.716' #calculate channel width in meters
 arcpy.CalculateField_management(selectOutput, 'Buff_dist', calcBuffer)
 
 bufferInput = selectOutput
-bufferOutput = "..\data\\NHDPlus_{}_channelMargins.shp".format(HUC)
+bufferOutput = "NHDPlus_{}_channelMargins.shp".format(HUC)
 arcpy.Buffer_analysis(bufferInput, bufferOutput, 'Buff_dist','','','ALL')
 
 # match stream margin spatial reference with geomorphons
@@ -127,7 +127,10 @@ outSetNull = SetNull(geomorph, 1, "Value < 6")
 outSetNull.save("Geomorphons_{}_ValleyBottom.tif".format(HUC))
 valley = "Geomorphons_{}_ValleyBottom.tif".format(HUC)
 
-'UNABLE TO CREATE MULTIPART POLYGONS BECAUSE ONLY 4 ARGUMENTS ALLOWED'
+#'UNABLE TO CREATE MULTIPART POLYGONS BECAUSE ONLY 4 ARGUMENTS ALLOWED AND CAN"T MANAGE ENVIRONMENTS'
 # convert clipped GEOMORPHONS raster to polygon
-arcpy.RasterToPolygon_conversion(valley, "Geomorphons_{}_ValleyBottom_polygon.shp".format(HUC),'NO_SIMPLIFY','VALUE','MULTIPLE_OUTER_PART')
+polyOutput = "Geomorphons_{}_ValleyBottom_polygon.shp".format(HUC)
+arcpy.RasterToPolygon_conversion(valley, polyOutput)
+arcpy.Dissolve_management(polyOutput, "Geomorphons_{}_ValleyBottom_dissolve.shp".format(HUC))
+
 
