@@ -7,6 +7,8 @@ Kim Myers
 krm75@duke.edu
 """
 
+#'HALP NOT OVERWRITING OUTPUT CORRECTLY'
+#'ALSO CANNOT PULL GEOMORPHONS FROM WEBSITE'
 
 # import modules
 import os
@@ -27,20 +29,16 @@ HUC = input("Which HUC8 would you like to analyze?: ")
 ### set the URLs
 huc4Folder = 'ftp://rockyftp.cr.usgs.gov/vdelivery/Datasets/Staged/Hydrography/NHDPlus/HU4/HighResolution/GDB/'
 huc4File = 'NHDPLUS_H_{}_HU4_GDB.zip'.format(HUC[:-4])
-huc8Folder = 'ftp://rockyftp.cr.usgs.gov/vdelivery/Datasets/Staged/Hydrography/NHD/HU8/HighResolution/GDB/'
-huc8File = 'NHD_H_{}_HU8_GDB.zip'.format(HUC)
 
 ### get the file (this can take a few minutes...)
 huc4Url = huc4Folder + "/" + huc4File
-huc8Url = huc8Folder + "/" + huc8File
 if os.path.exists(huc4File):
-    print("{} already downloaded, proceeding to unzip folder".format(huc8File))
+    print("{} already downloaded, proceeding to unzip folder".format(HUC))
 else:
-    print("Downloading {}".format(huc8File))
+    print("Downloading {}".format(HUC))
     urllib.request.urlretrieve(huc4Url, huc4File)
-    urllib.request.urlretrieve(huc8Url, huc8File)
+
     
-arcpy.env.workspace = "..\data"
 for file in arcpy.ListFiles("NHD*.zip"):
     ### move NHD Plus zip to desired folder
     currentPath = os.getcwd() + "\\" + file
@@ -65,9 +63,10 @@ for file in arcpy.ListFiles("NHD*.zip"):
     ##geoFile, headers = urllib.request.urlretrieve('http://python.org/')
 ##else: print('You will need to download a valley bottom layer.')
 
-#'CAN USE LAYER IN HUC4 GDB'
+
+arcpy.env.workspace = "..\scratch"
 # define HUC8 boundary as NHD WBD layer
-HUCboundary = 'NHD_H_03030002_HU8_GDB.gdb\\WBDHU8'
+HUCboundary = 'NHDPLUS_H_{}_HU4_GDB.gdb\\WBDHU8'.format(HUC[:-4])
 plusFlow = 'NHDPLUS_H_{}_HU4_GDB.gdb'.format(HUC[:-4]) + "\\" + "NHDFlowline"
 clipOutput = "NHDPlus_{}_Flowline".format(HUC)
 # clip NHD Plus line to HUC8 boundary
@@ -78,7 +77,7 @@ orderLimit = input("What is the lowest stream order you want to include?: ")
 #orderLimit = GetParameterAsText(0)
 orderLimit = int(orderLimit)
 
-#'HALP NOT OVERWRITING OUTPUT CORRECTLY'
+
 #selectInput = "..\data" + "\\" + clipOutput + ".shp"
 plusGDB = 'NHDPLUS_H_{}_HU4_GDB.gdb'.format(HUC[:-4])
 vaaTable = plusGDB + "\\" + "NHDPlusFlowlineVAA"
@@ -117,7 +116,7 @@ HBprojectOutput = "WBDHU8_StatePlane.shp"
 
 arcpy.Project_management(HUCboundary, HBprojectOutput, outCS)
 
-outExtractByMask = ExtractByMask("Geomorphons_of_NC_30ft.tif", HUCboundary)
+outExtractByMask = ExtractByMask("..\data\\Geomorphons_of_NC_30ft.tif", HUCboundary)
 outExtractByMask.save("Geomorphons_{}_StatePlane.tif".format(HUC))
 
 # filter GEOMORPHONS to valley bottom
