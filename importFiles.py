@@ -17,7 +17,7 @@ import shutil
 import urllib
 import zipfile #https://pymotw.com/2/zipfile/
 #import geopandas as gpd #http://geopandas.org/io.html
-arcpy.overwriteoutput = True
+arcpy.env.overwriteOutput = True
 
 ##### import NHD Plus (HUC4) and NHD (HUC8) GDBs for NC HUC of choice from USGS 
 
@@ -39,16 +39,15 @@ else:
     urllib.request.urlretrieve(huc4Url, huc4File)
 
     
-for file in arcpy.ListFiles("NHD*.zip"):
-    ### move NHD Plus zip to desired folder
-    currentPath = os.getcwd() + "\\" + file
-    #desiredPath = GetParametersAsText(1)
-    desiredPath = "..\data" + "\\" + file
-    shutil.move(currentPath, desiredPath)
-    ### first open the local zip file as a zipFile object
-    zipObject = zipfile.ZipFile(desiredPath)
-    zipObject.extractall(path="..\data")
-    zipObject.close()
+### move NHD Plus zip to desired folder
+currentPath = os.getcwd() + "\\" + huc4File
+#desiredPath = GetParametersAsText(1)
+desiredPath = "..\data" + "\\" + huc4File
+shutil.move(currentPath, desiredPath)
+### first open the local zip file as a zipFile object
+zipObject = zipfile.ZipFile(desiredPath)
+zipObject.extractall(path="..\data")
+zipObject.close()
     
     
 # import GEOMORPHONS layer from USGS 
@@ -66,9 +65,10 @@ for file in arcpy.ListFiles("NHD*.zip"):
 
 arcpy.env.workspace = "..\scratch"
 # define HUC8 boundary as NHD WBD layer
-HUCboundary = 'NHDPLUS_H_{}_HU4_GDB.gdb\\WBDHU8'.format(HUC[:-4])
-plusFlow = 'NHDPLUS_H_{}_HU4_GDB.gdb'.format(HUC[:-4]) + "\\" + "NHDFlowline"
-clipOutput = "NHDPlus_{}_Flowline".format(HUC)
+HUCboundary = '..\data\\NHDPlus_H_{}_HU4_GDB.gdb\\WBDHU8'.format(HUC[:-4])
+#HUCboundary = '..\data\NHDPLUS_H_{}_HU4_GDB.gdb\\WBDHU8'.format(HUC[:-4])
+plusFlow = '..\data\\NHDPLUS_H_{}_HU4_GDB.gdb'.format(HUC[:-4]) + "\\" + "NHDFlowline"
+clipOutput = "NHDPlus_{}_Flowline.shp".format(HUC)
 # clip NHD Plus line to HUC8 boundary
 arcpy.Clip_analysis(plusFlow, HUCboundary, clipOutput)
 
@@ -79,18 +79,18 @@ orderLimit = int(orderLimit)
 
 
 #selectInput = "..\data" + "\\" + clipOutput + ".shp"
-plusGDB = 'NHDPLUS_H_{}_HU4_GDB.gdb'.format(HUC[:-4])
+plusGDB = '../data//NHDPLUS_H_{}_HU4_GDB.gdb'.format(HUC[:-4])
 vaaTable = plusGDB + "\\" + "NHDPlusFlowlineVAA"
-#arcpy.JoinField_management(selectInput, 'ReachCode', vaaTable, 'ReachCode', ['StreamOrde','TotDASqKm'])
+arcpy.JoinField_management(clipOutput, 'ReachCode', vaaTable, 'ReachCode', ['StreamOrde','TotDASqKm'])
 
 if orderLimit == 1:  
     selectOutput = "NHDPlus_{}_Streams.shp".format(HUC)
     whereClause = '"FType" = 460 OR "FType" = 558'
-    arcpy.Select_analysis(selectInput, selectOutput, whereClause)
+    arcpy.Select_analysis(clipOutput, selectOutput, whereClause)
 else: 
     selectOutput = "NHDPlus_{}_Streams_{}Order.shp".format(HUC, orderLimit)
     whereClause = '("FType" = 460 OR "FType" = 558) AND "StreamOrde" >= {}'.format(orderLimit)
-    arcpy.Select_analysis(selectInput, selectOutput, whereClause)
+    arcpy.Select_analysis(clipOutput, selectOutput, whereClause)
     
 # buffer polylines, with distance weighted by drainage area, to create channel margins
 # buffer channel margins to account for digitization error (based on DEM resolution)
